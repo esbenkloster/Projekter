@@ -11,8 +11,17 @@ values = {
 }
 
 deck = []
-chips = 100
+print("\nVelkommen til Blackjack!\n")
+print("For at afslutte spillet når som helst, skriv 'q'. God fornøjelse!\n")
+while True:
+    num_players = input("Hvor mange spillere? ")
+    if num_players.isdigit() and int(num_players) > 0:
+        num_players = int(num_players)
+        break
+    else:
+        print("Ugyldigt antal spillere. Prøv igen.")
 
+chips = [100 for _ in range(num_players)]
 for suit in suits:
     for rank in ranks:
         deck.append((rank, suit))
@@ -70,231 +79,262 @@ def display_hand(hand, hide_first_card=False):
         return cards
     
 def play_blackjack():
-    global chips
-
-    if chips <= 0:
-        print("Du har ikke flere chips! Spillet er slut.")
-        quit_game()
-
-    # Bet (tjek 'q' først)
-    bet = input(f"Placér dit bet (maks {chips}): ")
-    while True:
-        if bet.lower() == 'q':
-            quit_game()
-        if bet.isdigit():
-            b = int(bet)
-            if b > 0 and b <= chips:
-                bet = b
-                break
-        bet = input(f"Ugyldigt beløb. Placér dit bet (maks {chips}): ")
-
-    print(f"Du har satset {bet} chips.\n")
     shuffle_deck()
-
-    player_hand = [deal_card(), deal_card()]
     dealer_hand = [deal_card(), deal_card()]
 
-    print("\nDin hånd:", display_hand(player_hand), "(Værdi:", calculate_hand_value(player_hand), ")")
-    print("Dealerens hånd:", display_hand(dealer_hand, hide_first_card=True))
+    all_player_hands = []
+    all_player_bets = []
 
-    did_split = False
-    player_hands = []
-    bets = []
+    for i in range(num_players):
+        print(f"\nSpiller {i+1}'s tur")
+        print(f"Du har {chips[i]} chips.")
 
-    # Tjek om par
-    if player_hand[0][0] == player_hand[1][0]:
-        action = input("Du har et par! Vil du (d)ele, (h)it eller (s)tand? ").lower()
+        if chips[i] <= 0:
+            print("Du har ikke flere chips! Spillet er slut.")
+            quit_game()
 
-        if action == 'd':
-            if chips - bet < 0:
-                print("Ikke nok chips til split. Fortsætter uden split.")
-                # Spil EN hånd færdig
+        bet = input(f"Placér dit bet (maks {chips[i]}): ")
+        while True:
+            if bet.lower() == 'q':
+                quit_game()
+            if bet.isdigit():
+                b = int(bet)
+                if b > 0 and b <= chips[i]:
+                    bet = b
+                    break
+            bet = input(f"Ugyldigt beløb. Placér dit bet (maks {chips[i]}): ")
+
+        time.sleep(1)
+        print(f"\nDu har satset {bet} chips.")
+        hand = [deal_card(), deal_card()]
+        #hand = [('Syv', 'Spar'), ('Syv', 'Hjerter')]
+        print(f"Din hånd: {display_hand(hand)} (Værdi: {calculate_hand_value(hand)})")
+        time.sleep(1)
+        all_player_hands.append(hand)
+        all_player_bets.append(bet)
+
+    print("\n\nDealerens hånd:", display_hand(dealer_hand, hide_first_card=True))
+    time.sleep(2)
+
+    # Spillerens tur
+    all_final_hands = []
+    all_final_bets = []
+    for i in range(num_players):
+        print(f"\nSpiller {i+1}'s tur ")
+        print("Din hånd:", display_hand(all_player_hands[i]), "(Værdi:", calculate_hand_value(all_player_hands[i]), ")")
+        bet = all_player_bets[i]
+        did_split = False
+        player_hands = []
+        bets = []
+
+        # Tjek om par
+        if all_player_hands[i][0][0] == all_player_hands[i][1][0]:
+            action = input("Du har et par! Vil du (d)ele, (h)it eller (s)tand? ").lower()
+            time.sleep(1)
+
+            if action == 'd':
+                if chips[i] < bet:
+                    print("Ikke nok chips til split. Fortsætter uden split.")
+
+                    # Spil EN hånd færdig
+                    while True:
+                        hand_value = calculate_hand_value(all_player_hands[i])
+                        print("\nDin hånd:", display_hand(all_player_hands[i]), "(Værdi:", hand_value, ")")
+                        if hand_value >= 21:
+                            break
+                        action = input("Vil du (h)it eller (s)tand? ").lower()
+                        time.sleep(1)
+
+                        if action == 'h':
+                            all_player_hands[i].append(deal_card())
+                        elif action == 's':
+                            break
+                        elif action == 'q':
+                            quit_game()
+                    player_hands = [all_player_hands[i]]
+                    bets = [bet]
+                else:
+                    chips[i] -= bet
+                    did_split = True
+
+                    # Lav to hænder og giv ét kort til hver
+                    hand1 = [all_player_hands[i][0], deal_card()]
+                    hand2 = [all_player_hands[i][1], deal_card()]
+
+                    # Spil hånd 1 færdig
+                    while True:
+                        v1 = calculate_hand_value(hand1)
+                        print("Første hånd:", display_hand(hand1), "(Værdi:", v1, ")")
+                        if v1 >= 21:
+                            break
+                        a1 = input(" - (h)it eller (s)tand? ").lower()
+                        if a1 == 'h':
+                            hand1.append(deal_card())
+                        elif a1 == 's':
+                            break
+                        elif a1 == 'q':
+                            quit_game()
+
+                    # Spil hånd 2 færdig
+                    while True:
+                        v2 = calculate_hand_value(hand2)
+                        print("Anden hånd:", display_hand(hand2), "(Værdi:", v2, ")")
+                        if v2 >= 21:
+                            break
+                        a2 = input(" - (h)it eller (s)tand? ").lower()
+                        if a2 == 'h':
+                            hand2.append(deal_card())
+                        elif a2 == 's':
+                            break
+                        elif a2 == 'q':
+                            quit_game()
+
+                    player_hands = [hand1, hand2]
+                    bets = [bet, bet]
+
+            elif action == 'h':
+                # Almindelig runde
+                all_player_hands[i].append(deal_card())
                 while True:
-                    pv = calculate_hand_value(player_hand)
-                    print("\nDin hånd:", display_hand(player_hand), "(Værdi:", pv, ")")
-                    if pv >= 21:
+                    hand_value = calculate_hand_value(all_player_hands[i])
+                    print("\nDin hånd:", display_hand(all_player_hands[i]), "(Værdi:", hand_value, ")")
+                    if hand_value >= 21:
                         break
-                    a = input("Vil du (h)it eller (s)tand? ").lower()
-                    if a == 'h':
-                        player_hand.append(deal_card())
-                    elif a == 's':
+                    action = input("Vil du (h)it eller (s)tand? ").lower()
+                    time.sleep(1)
+
+                    if action == 'h':
+                        all_player_hands[i].append(deal_card())
+                    elif action == 's':
                         break
-                    elif a == 'q':
+                    elif action == 'q':
                         quit_game()
-                player_hands = [player_hand]
+                player_hands = [all_player_hands[i]]
+                bets = [bet]
+
+            elif action == 's':
+                player_hands = [all_player_hands[i]]
+                bets = [bet]
+
+            elif action == 'q':
+                quit_game()
+            else:
+                print("Ugyldigt valg. Prøv igen.")
+                while True:
+                    hand_value = calculate_hand_value(all_player_hands[i])
+                    print("\nDin hånd:", display_hand(all_player_hands[i]), "(Værdi:", hand_value, ")")
+                    if hand_value >= 21:
+                        break
+                    action = input("Vil du (h)it eller (s)tand? ").lower()
+                    time.sleep(1)
+
+                    if action == 'h':
+                        all_player_hands[i].append(deal_card())
+                    elif action == 's':
+                        break
+                    elif action == 'q':
+                        quit_game()
+
+                player_hands = [all_player_hands[i]]
+                bets = [bet]
+        else:
+            # Ikke par
+            if calculate_hand_value(all_player_hands[i]) == 21:
+                print("Blackjack!")
+                player_hands = [all_player_hands[i]]
                 bets = [bet]
             else:
-                chips -= bet
-                did_split = True
+                action = input("Vil du (h)it eller (s)tand? ").lower()
+                time.sleep(1)
+                if action == 'h':
+                    all_player_hands[i].append(deal_card())
+                    while True:
+                        hand_value = calculate_hand_value(all_player_hands[i])
+                        print("\nDin hånd:", display_hand(all_player_hands[i]), "(Værdi:", hand_value, ")")
+                        if hand_value > 21:
+                            print("Du går over.")
+                            break
+                        if hand_value == 21:
+                            print("Du har 21!")
+                            break
+                        action = input("Vil du (h)it eller (s)tand? ").lower()
+                        time.sleep(1)
+                        if action == 'h':
+                            all_player_hands[i].append(deal_card())
+                        elif action == 's':
+                            break
+                        elif action == 'q':
+                            quit_game()
+                elif action == 's':
+                    player_hands = [all_player_hands[i]]
+                    bets = [bet]
 
-                # Lav to hænder og giv ét kort til hver
-                hand1 = [player_hand[0], deal_card()]
-                hand2 = [player_hand[1], deal_card()]
-
-                # Spil hånd 1
-                print("\nFørste hånd:", display_hand(hand1), "(Værdi:", calculate_hand_value(hand1), ")")
-                while True:
-                    v1 = calculate_hand_value(hand1)
-                    print("Første hånd nu:", display_hand(hand1), "(Værdi:", v1, ")")
-                    if v1 >= 21:
-                        break
-                    a1 = input("Hånd 1 - (h)it eller (s)tand? ").lower()
-                    if a1 == 'h':
-                        hand1.append(deal_card())
-                    elif a1 == 's':
-                        break
-                    elif a1 == 'q':
-                        quit_game()
-
-                # Spil hånd 2
-                print("\nAnden hånd:", display_hand(hand2), "(Værdi:", calculate_hand_value(hand2), ")")
-                while True:
-                    v2 = calculate_hand_value(hand2)
-                    print("Anden hånd nu:", display_hand(hand2), "(Værdi:", v2, ")")
-                    if v2 >= 21:
-                        break
-                    a2 = input("Hånd 2 - (h)it eller (s)tand? ").lower()
-                    if a2 == 'h':
-                        hand2.append(deal_card())
-                    elif a2 == 's':
-                        break
-                    elif a2 == 'q':
-                        quit_game()
-
-                player_hands = [hand1, hand2]
-                bets = [bet, bet]
-
-        elif action == 'h':
-            # Almindelig runde
-            player_hand.append(deal_card())
-            while True:
-                pv = calculate_hand_value(player_hand)
-                print("\nDin hånd:", display_hand(player_hand), "(Værdi:", pv, ")")
-                if pv >= 21:
-                    break
-                a = input("Vil du (h)it eller (s)tand? ").lower()
-                if a == 'h':
-                    player_hand.append(deal_card())
-                elif a == 's':
-                    break
-                elif a == 'q':
+                elif action == 'q':
                     quit_game()
-            player_hands = [player_hand]
-            bets = [bet]
-
-        elif action == 's':
-            player_hands = [player_hand]
-            bets = [bet]
-
-        elif action == 'q':
-            quit_game()
-        else:
-            print("Ugyldigt valg. Fortsætter uden split.")
-            while True:
-                pv = calculate_hand_value(player_hand)
-                print("\nDin hånd:", display_hand(player_hand), "(Værdi:", pv, ")")
-                if pv >= 21:
-                    break
-                a = input("Vil du (h)it eller (s)tand? ").lower()
-                if a == 'h':
-                    player_hand.append(deal_card())
-                elif a == 's':
-                    break
-                elif a == 'q':
-                    quit_game()
-            player_hands = [player_hand]
-            bets = [bet]
-    else:
-        # Ikke par
-        a = input("Vil du (h)it eller (s)tand? ").lower()
-        if a == 'h':
-            player_hand.append(deal_card())
-            while True:
-                pv = calculate_hand_value(player_hand)
-                print("\nDin hånd:", display_hand(player_hand), "(Værdi:", pv, ")")
-                if pv >= 21:
-                    break
-                a = input("Vil du (h)it eller (s)tand? ").lower()
-                if a == 'h':
-                    player_hand.append(deal_card())
-                elif a == 's':
-                    break
-                elif a == 'q':
-                    quit_game()
-        elif a == 'q':
-            quit_game()
-        player_hands = [player_hand]
-        bets = [bet]
-
-    # Hvis alle hænder går over
-    alle_over = True
-    i = 0
-    while i < len(player_hands):
-        if calculate_hand_value(player_hands[i]) <= 21:
-            alle_over = False
-            break
-        i += 1
-
-    if alle_over:
-        time.sleep(1)
-        if did_split:
-            print("\nBegge dine hænder gik over! Dealer vinder.")
-        else:
-            print("\nDu gik over! Dealer vinder.")
-        i = 0
-        while i < len(bets):
-            chips -= bets[i]
-            i += 1
-        return
-
+                else:
+                    print("Ugyldigt valg. Prøv igen.")
+                    while True:
+                        hand_value = calculate_hand_value(all_player_hands[i])
+                        print("\nDin hånd:", display_hand(all_player_hands[i]), "(Værdi:", hand_value, ")")
+                        if hand_value >= 21:
+                            break
+                        action = input("Vil du (h)it eller (s)tand? ").lower()
+                        time.sleep(1)
+                        if action == 'h':
+                            all_player_hands[i].append(deal_card())
+                        elif action == 's':
+                            break
+                        elif action == 'q':
+                            quit_game()
+                player_hands = [all_player_hands[i]]
+                bets = [bet]
+        all_final_hands.append(player_hands)
+        all_final_bets.append(bets)
     # Dealer spiller
     print("\nDealerens tur...")
     time.sleep(2)
     dealer_value = calculate_hand_value(dealer_hand)
     print("\nDealerens hånd (afslører kort):", display_hand(dealer_hand), "(Værdi:", dealer_value, ")")
-
+    time.sleep(1)
     while dealer_value < 17:
         print("Dealer trækker et kort...")
-        time.sleep(2)
+        time.sleep(1)
         dealer_hand.append(deal_card())
         dealer_value = calculate_hand_value(dealer_hand)
         print("Dealerens hånd:", display_hand(dealer_hand), "(Værdi:", dealer_value, ")")
 
-    # Find vinder for hver hånd
+    print()
     time.sleep(1)
-    idx = 0
-    while idx < len(player_hands):
-        hand = player_hands[idx]
-        b = bets[idx]
-        pv = calculate_hand_value(hand)
 
-        if pv > 21:
-            print(f"Hånd {idx+1 if did_split else 1}: {display_hand(hand)} ({pv}) -> går over! Du taber {b}.")
-            chips -= b
-        elif dealer_value > 21:
-            print(f"Dealer går over. Du vinder {b}!")
-            chips += b
-        elif pv > dealer_value:
-            print(f"Hånd {idx+1 if did_split else 1}: {display_hand(hand)} ({pv}) > Dealer ({dealer_value}). Du vinder {b}!")
-            chips += b
-        elif pv < dealer_value:
-            print(f"Hånd {idx+1 if did_split else 1}: {display_hand(hand)} ({pv}) < Dealer ({dealer_value}). Du taber {b}.")
-            chips -= b
-        else:
-            print(f"Hånd {idx+1 if did_split else 1}: {display_hand(hand)} ({pv}) = Dealer ({dealer_value}). Uafgjort (push).")
-        idx += 1
+   # Resultater for hver spiller
+    for i in range(num_players):
+        print(f"\nResultater for Spiller {i+1}:")
+        for hand_index, (hand, bet) in enumerate(zip(all_final_hands[i], all_final_bets[i]), start=1):
+            hand_value = calculate_hand_value(hand)
+            if hand_value > 21:
+                print(f"Hånd {hand_index}: {display_hand(hand)} ({hand_value}) -> går over! Du taber {bet}.")
+                chips[i] -= bet
+            elif dealer_value > 21:
+                print(f"Dealer går over. Du vinder {bet}!")
+                chips[i] += bet
+            elif hand_value > dealer_value:
+                print(f"Hånd {hand_index}: {display_hand(hand)} ({hand_value}) > Dealer ({dealer_value}). Du vinder {bet}!")
+                chips[i] += bet
+            elif hand_value < dealer_value:
+                print(f"Hånd {hand_index}: {display_hand(hand)} ({hand_value}) < Dealer ({dealer_value}). Du taber {bet}.")
+                chips[i] -= bet
+            else:
+                print(f"Hånd {hand_index}: {display_hand(hand)} ({hand_value}) = Dealer ({dealer_value}). Uafgjort.")
+        print(f"Du har nu {chips[i]} chips.")
+
 
 if __name__ == "__main__":
-    print("Velkommen til Blackjack!\n")
-    print("For at afslutte spillet når som helst, skriv 'q'. God fornøjelse!\n")
-    print(f"Du starter med {chips} chips.\n")
     while True:
         play_blackjack()
-        print(f"Du har nu {chips} chips.")
-        if chips <= 0:
-            print("Du har ikke flere chips! Spillet er slut.")
+        if all(c <= 0 for c in chips):
+            print("Alle spillere har ikke flere chips! Spillet er slut.")
             break
-        again = input("Vil du spille igen? (j/n): ").lower()
+        again = input("\nVil du/I spille igen? (j/n): ").lower()
         if again != 'j':
             print("Tak for spillet! Farvel!")
             break
